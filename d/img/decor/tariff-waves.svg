@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="452" height="520" viewBox="0 0 452 520" preserveAspectRatio="none" fill="none">
+  <!-- Filled abstract waves for the featured tariff card: three bands rising from the bottom-left to the right edge,
+       each a little darker than the card's #1b6ca2, with a soft light crest. -->
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a679c" stop-opacity=".0"/>
+      <stop offset=".18" stop-color="#1a659a" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#175d90"/>
+    </linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#175f93" stop-opacity=".0"/>
+      <stop offset=".16" stop-color="#165b8e" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#135283"/>
+    </linearGradient>
+    <linearGradient id="c" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#134f80" stop-opacity=".0"/>
+      <stop offset=".2" stop-color="#124d7d" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#104573"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 300C70 286 118 322 196 314C282 305 330 232 452 196V520H0Z" fill="url(#a)"/>
+  <path d="M0 372C86 350 150 392 232 378C322 362 372 296 452 278V520H0Z" fill="url(#b)"/>
+  <path d="M0 448C96 430 166 462 252 448C342 433 392 380 452 366V520H0Z" fill="url(#c)"/>
+  <g stroke="#fff" stroke-linecap="round">
+    <path d="M0 300C70 286 118 322 196 314C282 305 330 232 452 196" stroke-opacity=".16" stroke-width="1.5"/>
+    <path d="M0 372C86 350 150 392 232 378C322 362 372 296 452 278" stroke-opacity=".10" stroke-width="1.5"/>
+  </g>
+</svg>

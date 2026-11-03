@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360" fill="none">
+  <!-- Pale bacterium ball coming out of the top-right corner of the «Главные критерии» panel;
+       one tone darker than the panel, like the ribbons of «План работ». -->
+  <g fill="#e2edfa" stroke="#e2edfa" stroke-linecap="round">
+    <circle cx="200" cy="160" r="96" stroke="none"/>
+    <path d="M200 64V30M200 256v34M104 160H70M296 160h34M132 92l-24-24M268 228l24 24M132 228l-24 24M268 92l24-24M164 70l-12-31M236 250l12 31M110 196l-31 12M290 124l31-12M110 124l-31-12M290 196l31 12M164 250l-12 31M236 70l12-31" stroke-width="9"/>
+    <circle cx="200" cy="25" r="11" stroke="none"/><circle cx="200" cy="295" r="11" stroke="none"/>
+    <circle cx="65" cy="160" r="11" stroke="none"/><circle cx="335" cy="160" r="11" stroke="none"/>
+    <circle cx="105" cy="65" r="11" stroke="none"/><circle cx="295" cy="255" r="11" stroke="none"/>
+    <circle cx="105" cy="255" r="11" stroke="none"/><circle cx="295" cy="65" r="11" stroke="none"/>
+    <circle cx="150" cy="35" r="9" stroke="none"/><circle cx="250" cy="285" r="9" stroke="none"/>
+    <circle cx="75" cy="210" r="9" stroke="none"/><circle cx="325" cy="110" r="9" stroke="none"/>
+    <circle cx="75" cy="110" r="9" stroke="none"/><circle cx="325" cy="210" r="9" stroke="none"/>
+    <circle cx="150" cy="285" r="9" stroke="none"/><circle cx="250" cy="35" r="9" stroke="none"/>
+  </g>
+  <g fill="#eaf2fd">
+    <circle cx="168" cy="128" r="18"/><circle cx="232" cy="182" r="24"/><circle cx="214" cy="118" r="10"/><circle cx="172" cy="196" r="12"/>
+  </g>
+</svg>

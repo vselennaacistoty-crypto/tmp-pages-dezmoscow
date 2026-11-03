@@ -1,0 +1,662 @@
+/*
+ * Свой маленький скрипт вместо джумловского обвеса.
+ * Заменяет bootstrap.bundle, popper и template.js — раньше на это уходило
+ * около 90 КБ, здесь четыре. Разметка на страницах осталась бутстраповская
+ * (data-bs-toggle, .collapse, .modal), поэтому поведение повторяем один
+ * в один, иначе кнопки на странице есть, а нажимать их бесполезно.
+ */
+(function () {
+  'use strict';
+
+  var telo = document.body;
+
+  // ---- бургер ---------------------------------------------------------
+  // В перенесённой вёрстке кнопки меню не было: на телефоне шапка
+  // разворачивалась столбиком на весь экран. Кнопку ставим сами, разметку
+  // страниц ради этого не трогаем.
+  function postavit_burger() {
+    var stroka = document.querySelector('.header .header-row');
+    if (!stroka || stroka.querySelector('.esdm-burger')) return;
+    var b = document.createElement('button');
+    b.className = 'esdm-burger';
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Меню');
+    b.setAttribute('aria-expanded', 'false');
+    b.appendChild(document.createElement('span'));
+    var yakor = stroka.querySelector('.menu-cell');
+    if (yakor && yakor.parentElement === stroka) stroka.insertBefore(b, yakor.nextSibling);
+    else stroka.appendChild(b);
+  }
+  // ---- «Коротко» ------------------------------------------------------
+  // Блок-выжимка стоит первым под баннером: его читают поисковик и ассистент,
+  // а человеку он занимал пол-экрана до самого текста. Сворачиваем: видна
+  // одна строка заголовка, содержимое раскрывается нажатием. Текст остаётся
+  // в разметке — прятать его от глаз, оставляя роботу, нельзя.
+  function svernut_svodku() {
+    var spisok = document.querySelectorAll('.esd-svodka');
+    for (var i = 0; i < spisok.length; i += 1) {
+      var b = spisok[i];
+      if (b.classList.contains('esd-svodka--gotova')) continue;
+      var zag = b.querySelector('.esd-svodka__zagolovok');
+      if (!zag) continue;
+
+      var telo = document.createElement('div');
+      telo.className = 'esd-svodka__telo';
+      var vnutri = document.createElement('div');
+      vnutri.className = 'esd-svodka__vnutri';
+      telo.appendChild(vnutri);
+      while (zag.nextSibling) vnutri.appendChild(zag.nextSibling);
+      b.appendChild(telo);
+
+      var k = document.createElement('button');
+      k.className = 'esd-svodka__knopka';
+      k.type = 'button';
+      k.setAttribute('aria-expanded', 'false');
+      var tekst = document.createElement('span');
+      tekst.className = 'esd-svodka__tekst';
+      while (zag.firstChild) tekst.appendChild(zag.firstChild);
+      k.appendChild(tekst);
+      var znak = document.createElement('span');
+      znak.className = 'esd-svodka__znak';
+      znak.setAttribute('aria-hidden', 'true');
+      k.appendChild(znak);
+      zag.appendChild(k);
+
+      b.classList.add('esd-svodka--gotova');
+    }
+  }
+
+  function nastroit() {
+    postavit_burger();
+    svernut_svodku();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', nastroit);
+  } else {
+    nastroit();
+  }
+
+  // ---- модальные окна -------------------------------------------------
+  function podlozhka(pokazat) {
+    var b = document.querySelector('.esdm-backdrop');
+    if (pokazat) {
+      if (!b) {
+        b = document.createElement('div');
+        b.className = 'modal-backdrop fade show esdm-backdrop';
+        document.body.appendChild(b);
+      }
+    } else if (b) {
+      b.remove();
+    }
+  }
+
+  function open(id) {
+    var m = document.getElementById(id);
+    if (!m) return;
+    // откуда пришли — сюда вернём фокус после закрытия (клавиатура, скринридер)
+    if (!m.classList.contains('show')) m._back = document.activeElement;
+    m.classList.add('show');
+    m.style.display = 'block';
+    m.removeAttribute('aria-hidden');
+    podlozhka(true);
+    document.body.style.overflow = 'hidden';
+    var pole = m.querySelector('input:not([type=hidden]), textarea');
+    if (pole) setTimeout(function () { pole.focus(); }, 60);
+  }
+
+  function close(m) {
+    m.classList.remove('show');
+    m.style.display = '';
+    m.setAttribute('aria-hidden', 'true');
+    if (!document.querySelector('.modal.show')) {
+      podlozhka(false);
+      document.body.style.overflow = '';
+    }
+    var back = m._back;
+    m._back = null;
+    if (back && back.focus && document.contains(back)) back.focus();
+  }
+
+  // Tab не выходит из открытого окна: с последнего поля — на первое и обратно
+  function lovushka(e) {
+    var m = document.querySelector('.modal.show');
+    if (!m) return;
+    var f = [].filter.call(m.querySelectorAll('a[href], button, input:not([type=hidden]), select, textarea'),
+      function (x) { return !x.disabled && x.offsetParent !== null; });
+    if (!f.length) return;
+    // фокус может стоять и на самом окне (после клика мышью по тексту) — тогда i = -1
+    var i = f.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+  }
+
+  // ---- «Все услуги» ---------------------------------------------------
+  // Панель открывалась только по :hover. На телефоне hover срабатывает от
+  // первого касания и уже не снимается: окно висит поверх страницы, закрыть
+  // его нечем. Добавляем настоящее переключение по клику, а сам hover
+  // оставляем только мыши.
+  function menyu() {
+    return document.querySelector('.mod-navigation-collapse');
+  }
+
+  function zakryt_burger() {
+    var sh = document.querySelector('.header');
+    if (sh) sh.classList.remove('esdm-menu-open');
+    var b = document.querySelector('.esdm-burger');
+    if (b) b.setAttribute('aria-expanded', 'false');
+  }
+
+  function zakryt_menyu() {
+    var m = menyu();
+    if (m) m.classList.remove('esdm-open');
+    var k = document.getElementById('allUslugiButton');
+    if (k) k.setAttribute('aria-expanded', 'false');
+  }
+
+  // ---- сворачиваемые блоки (аккордеон «Частые вопросы») ---------------
+  function celi(t) {
+    var sel = t.getAttribute('data-bs-target') || t.getAttribute('href');
+    if (!sel) return [];
+    try { return [].slice.call(document.querySelectorAll(sel)); } catch (e) { return []; }
+  }
+
+  function pereklyuchit(cel, otkryt) {
+    cel.classList.toggle('show', otkryt);
+    // Кнопок на одну цель может быть несколько — красим все.
+    var sel = '[data-bs-toggle="collapse"]';
+    [].forEach.call(document.querySelectorAll(sel), function (k) {
+      if (celi(k).indexOf(cel) === -1) return;
+      k.classList.toggle('collapsed', !otkryt);
+      k.setAttribute('aria-expanded', otkryt ? 'true' : 'false');
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    if (!e.target || !e.target.closest) return;
+
+    // модальные окна
+    var t = e.target.closest('[data-bs-toggle="modal"]');
+    if (t) {
+      e.preventDefault();
+      var sel = t.getAttribute('data-bs-target') || t.getAttribute('href') || '';
+      open(sel.replace('#', ''));
+      return;
+    }
+    var d = e.target.closest('[data-bs-dismiss="modal"]');
+    if (d) {
+      var m = d.closest('.modal');
+      if (m) close(m);
+      return;
+    }
+    if (e.target.classList && e.target.classList.contains('modal')) { close(e.target); return; }
+
+    // бургер
+    var bg = e.target.closest('.esdm-burger');
+    if (bg) {
+      e.preventDefault();
+      var sh = document.querySelector('.header');
+      var otkryt = sh.classList.toggle('esdm-menu-open');
+      bg.setAttribute('aria-expanded', otkryt ? 'true' : 'false');
+      if (otkryt) zakryt_menyu();
+      return;
+    }
+
+    // «Все услуги»
+    var knopka = e.target.closest('#allUslugiButton');
+    if (knopka) {
+      e.preventDefault();
+      var mn = menyu();
+      if (mn) {
+        var est = mn.classList.toggle('esdm-open');
+        knopka.setAttribute('aria-expanded', est ? 'true' : 'false');
+        // два раскрытых меню сразу — каша, поэтому бургер закрываем
+        if (est) zakryt_burger();
+      }
+      return;
+    }
+    // клик мимо панели или по ссылке внутри неё — закрываем
+    var vnutri = e.target.closest('#navigation-collapse');
+    if (!vnutri || e.target.closest('#navigation-collapse a')) zakryt_menyu();
+
+    // ссылка в раскрытом меню — закрываем меню
+    if (e.target.closest('.header.esdm-menu-open a')) zakryt_burger();
+
+    // сворачиваемые блоки
+    var c = e.target.closest('[data-bs-toggle="collapse"]');
+    if (c) {
+      e.preventDefault();
+      var spisok = celi(c);
+      if (!spisok.length) return;
+      var otkryt = !spisok[0].classList.contains('show');
+      // аккордеон: в группе открыт ровно один пункт
+      var roditel = c.getAttribute('data-bs-parent')
+        || (spisok[0].getAttribute && spisok[0].getAttribute('data-bs-parent'));
+      if (otkryt && roditel) {
+        var gruppa = document.querySelector(roditel);
+        if (gruppa) {
+          [].forEach.call(gruppa.querySelectorAll('.collapse.show'), function (x) {
+            if (spisok.indexOf(x) === -1) pereklyuchit(x, false);
+          });
+        }
+      }
+      spisok.forEach(function (x) { pereklyuchit(x, otkryt); });
+      return;
+    }
+
+    // вкладки
+    var v = e.target.closest('[data-bs-toggle="tab"], [data-bs-toggle="pill"]');
+    if (v) {
+      e.preventDefault();
+      var panel = celi(v)[0];
+      if (!panel) return;
+      var obertka = panel.parentElement;
+      [].forEach.call(obertka.children, function (x) { x.classList.remove('show', 'active'); });
+      panel.classList.add('show', 'active');
+      var polosa = v.closest('.nav, .nav-tabs, .nav-pills');
+      if (polosa) {
+        [].forEach.call(polosa.querySelectorAll('.active'), function (x) { x.classList.remove('active'); });
+      }
+      v.classList.add('active');
+      return;
+    }
+
+    // «Коротко» — раскрыть выжимку
+    var sv = e.target.closest('.esd-svodka__knopka');
+    if (sv) {
+      e.preventDefault();
+      var blok = sv.closest('.esd-svodka');
+      var est_sv = blok.classList.toggle('esd-svodka--otkryta');
+      sv.setAttribute('aria-expanded', est_sv ? 'true' : 'false');
+      return;
+    }
+
+    // «Частые вопросы» — раскрыть один ответ
+    var fq = e.target.closest('.esd-faq__knopka');
+    if (fq) {
+      e.preventDefault();
+      var punkt = fq.closest('.esd-faq__item');
+      var est = punkt.classList.toggle('esd-faq__item--otkryt');
+      fq.setAttribute('aria-expanded', est ? 'true' : 'false');
+      return;
+    }
+
+    // «Показать полностью». Кнопка стоит не всегда сразу за блоком: на части
+    // страниц между ними оказалась обёртка. Ищем блок среди соседей и внутри
+    // предыдущего соседа, иначе кнопка молча ничего не делает.
+    var b = e.target.closest('.esd-more-btn');
+    if (b) {
+      var box = null;
+      for (var s = b.previousElementSibling; s && !box; s = s.previousElementSibling) {
+        box = s.classList.contains('esd-more') ? s : s.querySelector('.esd-more');
+      }
+      if (!box && b.parentElement) box = b.parentElement.querySelector('.esd-more');
+      if (!box) return;
+      var raskryt = box.classList.toggle('esd-more--open');
+      b.classList.toggle('esd-more-btn--open', raskryt);
+      var more = b.getAttribute('data-more') || 'Показать полностью ';
+      var less = b.getAttribute('data-less') || 'Свернуть ';
+      if (b.firstChild) b.firstChild.nodeValue = raskryt ? less : more;
+      if (!raskryt) box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Tab') { lovushka(e); return; }
+    if (e.key !== 'Escape') return;
+    var otkryto = document.querySelector('.modal.show');
+    if (otkryto) { close(otkryto); return; }
+    zakryt_menyu();
+    zakryt_burger();
+  });
+
+  // ---- отправка заявок ------------------------------------------------
+  // Контракт обработчика: FormData → JSON-строка 'OK'. Менять нельзя,
+  // на это же завязана цель «lead» в Метрике.
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form.matches('form[data-esdm-lead]')) return;
+    e.preventDefault();
+    var btn = form.querySelector('[type=submit]');
+    if (btn) btn.disabled = true;
+
+    fetch('/templates/dimone5/send.php', { method: 'POST', body: new FormData(form) })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json === 'OK') {
+          form.reset();
+          var otkryto = document.querySelector('.modal.show');
+          if (otkryto) close(otkryto);
+          open('okModal');
+          // Цель «lead» в оба счётчика (99657013 и второй, 113226726). Раньше вызов ждал
+          // window.esdmMetrikaId, который нигде не задавался, — цель не уходила ни разу.
+          // ym есть только после согласия на аналитику.
+          if (window.ym) { window.ym(99657013, 'reachGoal', 'lead'); window.ym(113226726, 'reachGoal', 'lead'); }
+        } else {
+          alert('Не получилось отправить. Позвоните, пожалуйста: +7 (495) 308-46-47');
+        }
+      })
+      .catch(function () {
+        alert('Не получилось отправить. Позвоните, пожалуйста: +7 (495) 308-46-47');
+      })
+      .finally(function () { if (btn) btn.disabled = false; });
+  });
+
+  // ---- уведомление о cookie -------------------------------------------
+  // Выбор посетителя хранится в localStorage полгода. До выбора грузятся
+  // только необходимые скрипты; аналитика и телефония ждут согласия.
+  // Счётчики читают window.esdmSoglasie и слушают событие esdm-cookie.
+  var COOKIE_KLYUCH = 'esdm-cookie-v1';
+  var COOKIE_SROK = 183 * 24 * 60 * 60 * 1000; // полгода
+
+  function cookie_procitat() {
+    try {
+      var s = localStorage.getItem(COOKIE_KLYUCH);
+      if (!s) return null;
+      var o = JSON.parse(s);
+      if (!o || !o.kogda) return null;
+      if (Date.now() - o.kogda > COOKIE_SROK) return null; // согласие протухло — спросим заново
+      return o;
+    } catch (e) { return null; }
+  }
+
+  function cookie_zapisat(analitika, reklama) {
+    var o = { analitika: !!analitika, reklama: !!reklama, kogda: Date.now() };
+    try { localStorage.setItem(COOKIE_KLYUCH, JSON.stringify(o)); } catch (e) {}
+    cookie_primenit(o);
+  }
+
+  function cookie_primenit(o) {
+    window.esdmSoglasie = { analitika: !!o.analitika, reklama: !!o.reklama };
+    try {
+      document.dispatchEvent(new CustomEvent('esdm-cookie', { detail: window.esdmSoglasie }));
+    } catch (e) {
+      var ev = document.createEvent('CustomEvent');
+      ev.initCustomEvent('esdm-cookie', true, false, window.esdmSoglasie);
+      document.dispatchEvent(ev);
+    }
+  }
+
+  function cookie_ekran(imya) {
+    var k = document.getElementById('esdmCookie');
+    if (!k) return;
+    var spisok = k.querySelectorAll('[data-cookie-ekran]');
+    for (var i = 0; i < spisok.length; i += 1) {
+      spisok[i].hidden = spisok[i].getAttribute('data-cookie-ekran') !== imya;
+    }
+  }
+
+  function cookie_pokazat(nastrojki) {
+    var k = document.getElementById('esdmCookie');
+    if (!k) return;
+    var vybor = cookie_procitat();
+    var spisok = k.querySelectorAll('[data-cookie-kategoriya]');
+    for (var i = 0; i < spisok.length; i += 1) {
+      var kat = spisok[i].getAttribute('data-cookie-kategoriya');
+      spisok[i].checked = !!(vybor && vybor[kat]);
+    }
+    cookie_ekran(nastrojki ? 'nastrojki' : 'start');
+    k.hidden = false;
+  }
+
+  function cookie_spryatat() {
+    var k = document.getElementById('esdmCookie');
+    if (k) k.hidden = true;
+  }
+
+  // Открыть настройки из подвала: <a href="#" data-esdm-cookie-nastrojki>
+  document.addEventListener('click', function (e) {
+    var ssylka = e.target.closest && e.target.closest('[data-esdm-cookie-nastrojki]');
+    if (ssylka) { e.preventDefault(); cookie_pokazat(true); return; }
+
+    var b = e.target.closest && e.target.closest('[data-cookie]');
+    if (!b) return;
+    var d = b.getAttribute('data-cookie');
+    if (d === 'nastroit') { cookie_ekran('nastrojki'); return; }
+    if (d === 'nazad') { cookie_ekran('start'); return; }
+    if (d === 'prinyat') { cookie_zapisat(true, true); cookie_spryatat(); return; }
+    if (d === 'otklonit') { cookie_zapisat(false, false); cookie_spryatat(); return; }
+    if (d === 'sohranit') {
+      var k = document.getElementById('esdmCookie');
+      var a = k.querySelector('[data-cookie-kategoriya="analitika"]');
+      var r = k.querySelector('[data-cookie-kategoriya="reklama"]');
+      cookie_zapisat(a && a.checked, r && r.checked);
+      cookie_spryatat();
+    }
+  });
+
+  (function () {
+    var vybor = cookie_procitat();
+    if (vybor) { cookie_primenit(vybor); return; }
+    window.esdmSoglasie = { analitika: false, reklama: false };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { cookie_pokazat(false); });
+    } else {
+      cookie_pokazat(false);
+    }
+  })();
+
+  // ---- ПОДВАЛ: услуги в аккордеон (мобильный) -------------------------
+  // Длинную «простынь» услуг внизу на телефоне сворачиваем: ставим кнопку-
+  // тумблер и по умолчанию прячем .footer-bottom-row (CSS — improvements.css).
+  // На десктопе media-query нейтрализует и кнопку, и класс: там всё как было.
+  function svernut_uslugi_v_podvale() {
+    var footRow = document.querySelector('.footer-bottom-row');
+    if (!footRow || footRow.dataset.accWired) return;
+    if (footRow.parentElement.querySelector('.footer-uslugi-toggle')) return;
+    footRow.dataset.accWired = '1';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'footer-uslugi-toggle';
+    btn.textContent = 'Наши услуги';
+    btn.setAttribute('aria-expanded', 'false');
+    footRow.parentElement.insertBefore(btn, footRow);
+    footRow.classList.add('esd-foot-collapsed'); // свёрнуто по умолчанию
+    btn.addEventListener('click', function () {
+      var collapsed = footRow.classList.toggle('esd-foot-collapsed');
+      btn.classList.toggle('esd-open', !collapsed);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+    });
+  }
+  // ---- ГЕО-СТРИП: список городов в аккордеон (мобильный) --------------
+  // Внизу страницы два списка городов подряд: общий гео-стрип (ведёт на
+  // городские хабы) и гео-сетка услуги (ведёт на город x услуга). На телефоне
+  // это две простыни одна за другой. Сворачиваем ПЕРВУЮ — она вспомогательная.
+  // Убирать её нельзя: это единственные ссылки на городские хабы во всём сайте.
+  // На десктопе кнопка скрыта media-query, список виден как раньше.
+  function svernut_geografiyu() {
+    var spisok = document.querySelector('.mod-geografiya__spisok');
+    if (!spisok || spisok.dataset.accWired) return;
+    if (spisok.parentElement.querySelector('.geo-toggle')) return;
+    spisok.dataset.accWired = '1';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'footer-uslugi-toggle geo-toggle';
+    btn.textContent = 'Города Подмосковья';
+    btn.setAttribute('aria-expanded', 'false');
+    spisok.parentElement.insertBefore(btn, spisok);
+    spisok.classList.add('esd-geo-collapsed');
+    btn.addEventListener('click', function () {
+      var collapsed = spisok.classList.toggle('esd-geo-collapsed');
+      btn.classList.toggle('esd-open', !collapsed);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      svernut_uslugi_v_podvale();
+      svernut_geografiyu();
+    });
+  } else {
+    svernut_uslugi_v_podvale();
+    svernut_geografiyu();
+  }
+
+  void telo;
+})();
+
+
+/* ------------------------------------------------------------------
+   Второй счётчик Яндекс.Метрики — 113226726, аккаунт esdmoscow.
+   Заведён 30.09.2026. Первый счётчик (99657013) принадлежит аккаунту
+   DVV-mk, у нас на него только гостевой доступ; этот — собственный.
+
+   Почему здесь, а не в data/chrome/counters.html: esdm.js — один файл на
+   весь сайт, он подключён и на 1772 страницах сборки, и на 42 страницах,
+   которые ведутся на проде вручную и в сборку не входят. Правка одного
+   файла закрывает все страницы сразу.
+
+   Условия запуска те же, что у первого счётчика: только после согласия
+   в уведомлении о cookie (группа analitika) и с той же задержкой.
+   ------------------------------------------------------------------ */
+(function () {
+  var VTOROY_ID = 113226726;
+  var zapushcheno = false;
+
+  function zapustit() {
+    if (zapushcheno) return;
+    zapushcheno = true;
+
+    (function (m, e, t, r, i, k, a) {
+      m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
+      m[i].l = 1 * new Date();
+      for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+      k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
+    })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', 'ym');
+
+    window.ym(VTOROY_ID, 'init', {
+      clickmap: true,
+      trackLinks: true,
+      accurateTrackBounce: true,
+      webvisor: true
+    });
+  }
+
+  // Та же пауза, что и у первого счётчика: 2,5 секунды после загрузки
+  // либо первое действие посетителя — что наступит раньше.
+  function pozzhe(chto) {
+    var sdelano = false;
+    function go() { if (sdelano) return; sdelano = true; chto(); }
+    if (document.readyState === 'complete') { setTimeout(go, 2500); }
+    else { addEventListener('load', function () { setTimeout(go, 2500); }); }
+    ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(function (e) {
+      addEventListener(e, go, { once: true, passive: true });
+    });
+  }
+
+  function primenit(s) { if (s && s.analitika) pozzhe(zapustit); }
+
+  primenit(window.esdmSoglasie);
+  document.addEventListener('esdm-cookie', function (e) { primenit(e.detail); });
+})();
+
+
+/* ------------------------------------------------------------------
+   Кнопка WhatsApp в шапке и в подвале — 01.10.2026.
+
+   В разметке страниц блоки WhatsApp лежат закомментированными ещё со
+   старой вёрстки: в них нет классов выравнивания, которые появились у
+   Telegram и MAX после переделки шапки. Поэтому не раскомментируем их,
+   а ставим ссылку заново, один в один по образцу ссылки MAX.
+
+   Здесь, а не в разметке, по той же причине, что и второй счётчик:
+   esdm.js подключён и на 1772 страницах сборки, и на 42 страницах,
+   которые ведутся на проде вручную. Одна правка закрывает все.
+
+   Номер +7 909 989-12-62 — тот же, что в Telegram.
+   ------------------------------------------------------------------ */
+(function () {
+  var SSYLKA = 'https://wa.me/79099891262';
+  var IKONKA = '/images/whatsapp.svg';
+
+  function stili() {
+    if (document.getElementById('esdm-wa-stili')) return;
+    var s = document.createElement('style');
+    s.id = 'esdm-wa-stili';
+    s.textContent =
+      /* у MAX в подвале класс достался от WhatsApp, когда тот убирали:
+         последней ссылке отступ не нужен, средней — нужен */
+      '.mod-footer-messagers__link_whatsapp:not(:last-child){margin-right:30px}' +
+      /* воздух между строкой «телефон + мессенджеры» и кнопкой «Оставить
+         заявку»: на проде они соприкасались вплотную даже с двумя иконками.
+         row-gap действует только когда строка переносится — на широких
+         экранах, где кнопка стоит справа, ничего не меняется */
+      '.mod-header .row.justify-content-lg-end.align-items-center.gx-0{row-gap:12px}';
+    document.head.appendChild(s);
+  }
+
+  function vShapke() {
+    var max = document.querySelector('header a.mod-header__item_messengers-link[href*="max.ru/u/"]');
+    if (!max || max.parentElement.querySelector('a[href*="wa.me"]')) return;
+    max.classList.add('me-2');
+    var a = document.createElement('a');
+    a.className = 'mod-header__item_messengers-link messagers-link flex-shrink-0 d-flex align-items-center';
+    a.href = SSYLKA;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.setAttribute('aria-label', 'Написать в WhatsApp');
+    a.innerHTML = '<span class="messenger-ikon mod-header__messenger-ikon">' +
+      '<img width="27" height="27" alt="WhatsApp" class="w-100 h-100" src="' + IKONKA + '"></span>';
+    max.insertAdjacentElement('afterend', a);
+  }
+
+  function vPodvale() {
+    var max = document.querySelector('footer a.mod-footer-messagers__link[href*="max.ru/u/"]');
+    if (!max || max.parentElement.querySelector('a[href*="wa.me"]')) return;
+    var a = document.createElement('a');
+    a.className = 'mod-footer-messagers__link mod-footer-messagers__link_whatsapp messagers-link d-inline-flex align-items-center text-decoration-none';
+    a.href = SSYLKA;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.innerHTML = '<span class="messenger-ikon mod-footer-messagers__ikon flex-shrink-0">' +
+      '<img fetchpriority="low" width="27" height="27" alt="WhatsApp" class="w-100 h-100" loading="lazy" src="' + IKONKA + '"></span>' +
+      '<span class="mod-footer-messagers__link_text ff-geologica fs-15 fw-light text-black">Написать в WhatsApp</span>';
+    max.insertAdjacentElement('afterend', a);
+  }
+
+  function postavit() { stili(); vShapke(); vPodvale(); }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postavit);
+  else postavit();
+})();
+
+
+/* ------------------------------------------------------------------
+   Карта на «Контактах» (/contacts и 17 городских) — 31.10.2026.
+
+   Виджет Яндекс Карт сам подключает счётчики Метрики, а уведомление
+   о cookie обещает, что до согласия ничего не запускается. Поэтому
+   в разметке только заглушка [data-map-src] с адресом и кнопкой;
+   карта встаёт по кнопке «Показать карту» или сразу, если посетитель
+   согласился на аналитику.
+   ------------------------------------------------------------------ */
+(function () {
+  function pokazat(frame) {
+    var src = frame && frame.getAttribute('data-map-src');
+    if (!src) return;
+    var f = document.createElement('iframe');
+    f.className = 'nd-special-map__iframe';
+    f.src = src;
+    f.title = frame.getAttribute('data-map-title') || 'Карта';
+    f.setAttribute('allowfullscreen', '');
+    f.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+    frame.removeAttribute('data-map-src');
+    frame.innerHTML = '';
+    frame.appendChild(f);
+  }
+
+  document.addEventListener('click', function (e) {
+    var knopka = e.target.closest && e.target.closest('.nd-special-map__show');
+    if (knopka) pokazat(knopka.closest('.nd-special-map__frame'));
+  });
+
+  function primenit(s) {
+    if (!(s && s.analitika)) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.nd-special-map__frame[data-map-src]'), pokazat);
+  }
+
+  function start() { primenit(window.esdmSoglasie); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+  document.addEventListener('esdm-cookie', function (e) { primenit(e.detail); });
+})();

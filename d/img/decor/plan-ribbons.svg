@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="467" viewBox="0 0 380 467" fill="none">
+  <!-- Faint brush ribbons at the right edge of the "План работ" band, traced from the reference L* mask (x 2530-2752, y 20-296 ref px). -->
+  <g stroke="#eaf3fe" stroke-linecap="round">
+    <path d="M271 36C262 118 262 196 279 276C293 342 288 404 232 478" stroke-width="58"/>
+    <path d="M404 110C344 142 318 228 330 300C341 366 360 420 346 500" stroke-width="64"/>
+    <path d="M40 352C64 388 100 428 126 480" stroke-width="40"/>
+  </g>
+</svg>

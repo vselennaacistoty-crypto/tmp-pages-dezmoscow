@@ -1,0 +1,55 @@
+# Единая Служба Дезинфекции Москвы
+
+User-agent: *
+Allow: /
+
+# Поисковые роботы
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: YandexAdditional
+Allow: /
+
+User-agent: YandexAdditionalBot
+Allow: /
+
+# Роботы ИИ-поиска: именно они приносят страницу в ответ ассистента.
+# Обучающие (GPTBot, ClaudeBot, Google-Extended) на цитирование не влияют,
+# но и вреда от них нет, а общий запрет обычно заодно рубит поисковые.
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+Sitemap: https://dezinfektsiya-moscow.pro/sitemap.xml
